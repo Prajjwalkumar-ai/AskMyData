@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from google import genai
 from schema_context import SCHEMA_CONTEXT
 from sqlalchemy import create_engine, text
+from chart_generator import generate_chart
 
 load_dotenv()
 
@@ -77,6 +78,11 @@ if __name__ == "__main__":
             print("Result:")
             for row in rows:
                 print(row)
+            chart_path = generate_chart(columns, rows, test_question)
+            if chart_path:
+                print(f"\n📊 Chart saved at: {chart_path}")
+            else:
+                print("\n(No chart generated — data not suitable for a chart)")
         except Exception as e:
             print("\nError:", e)
 

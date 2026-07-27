@@ -3,3 +3,4 @@ numpy
 sqlalchemy
 python-dotenv
 google-genai
+matplotlib
