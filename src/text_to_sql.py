@@ -6,13 +6,14 @@ from google import genai
 from schema_context import SCHEMA_CONTEXT
 from sqlalchemy import create_engine, text
 from chart_generator import generate_chart
+from insight_generator import generate_insight
 
 load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
-def generate_sql(user_question: str, max_retries: int = 3) -> str:
+def generate_sql(user_question: str, max_retries: int = 2) -> str:
     prompt = f"""You are an expert SQL assistant. Convert the user's question into a valid SQLite SQL query.
 
 Database schema:
@@ -28,22 +29,32 @@ User question: {user_question}
 
 SQL query:"""
 
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model="gemini-3.5-flash",
-                contents=prompt
-            )
-            sql = response.text.strip()
-            sql = re.sub(r"^```sql\s*|\s*```$", "", sql, flags=re.MULTILINE).strip()
-            sql = re.sub(r"^```\s*|\s*```$", "", sql, flags=re.MULTILINE).strip()
-            return sql
-        except Exception as e:
-            print(f"Attempt {attempt + 1} failed: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(5)
-            else:
-                raise
+    models_to_try = [
+    "gemini-flash-lite-latest",
+    "gemini-2.0-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+]
+
+    last_error = None
+    for model_name in models_to_try:
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
+                sql = response.text.strip()
+                sql = re.sub(r"^```sql\s*|\s*```$", "", sql, flags=re.MULTILINE).strip()
+                sql = re.sub(r"^```\s*|\s*```$", "", sql, flags=re.MULTILINE).strip()
+                return sql
+            except Exception as e:
+                last_error = e
+                print(f"Model '{model_name}', attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(8)
+
+    raise Exception(f"All models failed. Last error: {last_error}")
 
 
 def execute_sql(sql_query: str):
@@ -83,6 +94,9 @@ if __name__ == "__main__":
                 print(f"\n📊 Chart saved at: {chart_path}")
             else:
                 print("\n(No chart generated — data not suitable for a chart)")
+
+            insight = generate_insight(test_question, columns, rows)
+            print(f"\n💡 Insight: {insight}")
         except Exception as e:
             print("\nError:", e)
 
