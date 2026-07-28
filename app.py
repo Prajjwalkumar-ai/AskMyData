@@ -15,7 +15,10 @@ st.caption("Ask questions about your sales data in plain English — powered by 
 
 question = st.text_input("Ask a question about your data:", placeholder="e.g. What is the total sales by region?")
 
-if st.button("Ask") and question.strip():
+if st.button("Ask"):
+    if not question.strip():
+        st.warning("Please type a question before clicking Ask.")
+        st.stop()
     with st.spinner("Generating SQL query..."):
         try:
             sql_query = generate_sql(question)

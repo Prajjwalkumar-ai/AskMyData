@@ -58,6 +58,16 @@ SQL query:"""
 
 
 def execute_sql(sql_query: str):
+   
+    forbidden_keywords = ["DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "TRUNCATE"]
+    sql_upper = sql_query.strip().upper()
+
+    if not sql_upper.startswith("SELECT"):
+        raise ValueError("Only SELECT queries are allowed for safety reasons.")
+
+    if any(keyword in sql_upper for keyword in forbidden_keywords):
+        raise ValueError("Query contains a forbidden keyword and was blocked for safety.")
+
     engine = create_engine("sqlite:///data/askmydata.db")
     with engine.connect() as conn:
         result = conn.execute(text(sql_query))
